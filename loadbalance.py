@@ -5,14 +5,14 @@ from sys import exit
 
 def deviceInformation(data):
 	global switch
-	global MACaddress
+	global macaddress
 	global hostPorts
 	switchDPID = ""
 	for i in data:
 		if(i['ipv4']):
 			ip = i['ipv4'][0].encode('ascii','ignore')
 			mac = i['mac'][0].encode('ascii','ignore')
-			MACaddress[ip] = mac
+			macaddress[ip] = mac
 			for j in i['attachmentPoint']:
 				for key in j:
 					temp = key.encode('ascii','ignore')
@@ -91,37 +91,37 @@ def FindLink():
 		portKey = ""
 
 
-def ValOfFlow(PresentNode, flowCount, PortIN, PortOUT):
+def ValOfFlow(presentNode, flowCount, portIN, portOUT):
 	flow = {
-		'switch':"00:00:00:00:00:00:00:" + PresentNode,
+		'switch':"00:00:00:00:00:00:00:" + presentNode,
 	    "name":"flow" + str(flowCount),
 	    "cookie":"0",
 	    "priority":"32768",
-	    "in_port":PortIN,
+	    "in_port":portIN,
 		"eth_type": "0x0800",
 		"ipv4_source": h2,
 		"ipv4_destination": h1,
-		"eth_source": MACaddress[h2],
-		"eth_destination": MACaddress[h1],
+		"eth_source": macaddress[h2],
+		"eth_destination": macaddress[h1],
 	    "active":"true",
-	    "actions":"output=" + PortOUT
+	    "actions":"output=" + portOUT
 	}
 
 	flowCount = flowCount + 1
 
 	flow = {
-		'switch':"00:00:00:00:00:00:00:" + PresentNode,
+		'switch':"00:00:00:00:00:00:00:" + presentNode,
 	    "name":"flow" + str(flowCount),
 	    "cookie":"0",
 	    "priority":"32768",
-	    "in_port":PortOUT,
+	    "in_port":portOUT,
 		"eth_type": "0x0800",
 		"ipv4_source": h1,
 		"ipv4_destination": h2,
-		"eth_source": MACaddress[h1],
-		"eth_destination": MACaddress[h2],
+		"eth_source": macaddress[h1],
+		"eth_destination": macaddress[h2],
 	    "active":"true",
-	    "actions":"output=" + PortIN
+	    "actions":"output=" + portIN
 	}
 
 
@@ -134,39 +134,39 @@ def NewPath():
 	print "\n\nShortest Path: ",shortestPath
 
 
-	PresentNode = shortestPath.split("::",2)[0]
+	presentNode = shortestPath.split("::",2)[0]
 	nextNode = shortestPath.split("::")[1]
 
 	# Finding Port
-	port = linkPorts[PresentNode+"::"+nextNode]
-	PortOUT = port.split("::")[0]
-	PortIN = hostPorts[h2+"::"+switch[h2].split(":")[7]]
+	port = linkPorts[presentNode+"::"+nextNode]
+	portOUT = port.split("::")[0]
+	portIN = hostPorts[h2+"::"+switch[h2].split(":")[7]]
 
-	ValOfFlow(PresentNode,flowCount,PortIN,PortOUT)
+	ValOfFlow(presentNode,flowCount,portIN,portOUT)
 
 	flowCount = flowCount + 2
 	bestPath = path[shortestPath]
-	previousNode = PresentNode
+	previousNode = presentNode
 
-	for PresentNode in range(0,len(bestPath)):
-		if previousNode == bestPath[PresentNode].split(":")[7]:
+	for presentNode in range(0,len(bestPath)):
+		if previousNode == bestPath[presentNode].split(":")[7]:
 			continue
 		else:
-			port = linkPorts[bestPath[PresentNode].split(":")[7]+"::"+previousNode]
-			PortIN = port.split("::")[0]
-			PortOUT = ""
-			if(PresentNode+1<len(bestPath) and bestPath[PresentNode]==bestPath[PresentNode+1]):
-				PresentNode = PresentNode + 1
+			port = linkPorts[bestPath[presentNode].split(":")[7]+"::"+previousNode]
+			portIN = port.split("::")[0]
+			portOUT = ""
+			if(presentNode+1<len(bestPath) and bestPath[presentNode]==bestPath[presentNode+1]):
+				presentNode = presentNode + 1
 				continue
-			elif(PresentNode+1<len(bestPath)):
-				port = linkPorts[bestPath[PresentNode].split(":")[7]+"::"+bestPath[PresentNode+1].split(":")[7]]
-				PortOUT = port.split("::")[0]
-			elif(bestPath[PresentNode]==bestPath[-1]):
-				PortOUT = str(hostPorts[h1+"::"+switch[h1].split(":")[7]])
+			elif(presentNode+1<len(bestPath)):
+				port = linkPorts[bestPath[presentNode].split(":")[7]+"::"+bestPath[presentNode+1].split(":")[7]]
+				portOUT = port.split("::")[0]
+			elif(bestPath[presentNode]==bestPath[-1]):
+				portOUT = str(hostPorts[h1+"::"+switch[h1].split(":")[7]])
 
-			ValOfFlow(bestPath[PresentNode].split(":")[7],flowCount,str(PortIN),str(PortOUT))
+			ValOfFlow(bestPath[presentNode].split(":")[7],flowCount,str(portIN),str(portOUT))
 			flowCount = flowCount + 2
-			previousNode = bestPath[PresentNode].split(":")[7]
+			previousNode = bestPath[presentNode].split(":")[7]
 
 # Method To Perform Load Balancing
 def loadbalance():
@@ -197,26 +197,13 @@ while True:
 
 	# H3-H4 swtich details
 	switch = {}
-
 	# Mac address of H3 And H4
-	MACaddress = {}
-
-	# Stores Host Switch Ports
+	macaddress = {}
 	hostPorts = {}
-
-	# Stores Switch To Switch Path
 	path = {}
-
-	# Switch Links
 	switchLinks = {}
-
-	# Stores Link Ports
 	linkPorts = {}
-
-	# Stores Final Link Rates
 	finalrate = {}
-
-	# Store Port Key For Finding Link Rates
 	portKey = ""
 
 	# Initiating a new Graph
@@ -228,7 +215,7 @@ while True:
 
 		print "Switch H4 is: ",switch[h3], "\tSwitch H3 is: ", switch[h2]
 		print "\n\nSwitch H1: ", switch[h1]
-		print "\nIP & MAC\n\n", MACaddress
+		print "\nIP & MAC\n\n", macaddress
 		# Link Ports
 		print "\nLink Ports (source::destination - source PORT::destination PORT)\n\n", linkPorts
 		# Alternative Path found
